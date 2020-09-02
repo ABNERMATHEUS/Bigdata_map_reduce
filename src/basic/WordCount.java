@@ -39,13 +39,15 @@ public class WordCount {
         j.setMapperClass(MapForWordCount.class);
         j.setReducerClass(ReduceForWordCount.class);
 
+        j.setCombinerClass(CombinerForWordCount.class);
+
         //Definicao dos tipos de saida(reduce)
         j.setOutputKeyClass(Text.class);
         j.setOutputValueClass(IntWritable.class);
 
         //cadastro dos arquivos de entrada e saida
-        FileInputFormat.addInputPath(j,input);
-        FileOutputFormat.setOutputPath(j,output);
+        FileInputFormat.addInputPath(j, input);
+        FileOutputFormat.setOutputPath(j, output);
 
         // lanca o job e aguarda sua execucao
         System.exit(j.waitForCompletion(true) ? 0 : 1);
@@ -69,7 +71,7 @@ public class WordCount {
 
             // Loop -> gerar as tuplas no formato de <chave = palavra, valor = ocorrencia = 1>
 
-            for(String p: palavras){
+            for (String p : palavras) {
 
                 //criando chave de saida
                 Text chaveSaida = new Text(p);
@@ -79,10 +81,11 @@ public class WordCount {
 
                 //Emitir a tupla
 
-                con.write(chaveSaida,valorSaida);
+                con.write(chaveSaida, valorSaida);
 
+            }
         }
-    }}
+    }
 
     public static class ReduceForWordCount extends Reducer<Text, IntWritable, Text, IntWritable> {
 
@@ -95,19 +98,32 @@ public class WordCount {
 
             int soma = 0;
 
-            for(IntWritable valor: values){
+            for (IntWritable valor : values) {
                 soma += valor.get();
             }
 
 
             //criando tupla com o resultado final(palavra,soma)
-            con.write( word,new IntWritable(soma) );
+            con.write(word, new IntWritable(soma));
             //lembrete: no reduce, o write escreve no arquivo!
-
-            }
 
         }
 
+    }
+
+    /**
+     * Um combiner é muito parecido com o reducer, ele é executado por CHAVE apos a execucao de cada MAP
+     * O combiner é executado por BLOCO assim como o MAP
+     */
+    public static class CombinerForWordCount extends Reducer<Text, IntWritable, Text, IntWritable> {
+        public void reduce(Text word, Iterable<IntWritable> values, Context con) throws IOException, InterruptedException {
+            int soma = 0;
+            for (IntWritable vlr : values) {
+                soma += vlr.get();
+            }
+            con.write(word, new IntWritable(soma));
+        }
 
 
+    }
 }
